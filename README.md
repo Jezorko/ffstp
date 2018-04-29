@@ -39,7 +39,7 @@ And the dependency:
     <groupId>com.github.jezorko</groupId>
     <artifactId>ffstp</artifactId>
     <version>1.0.0</version>
-    </dependency>
+</dependency>
 ```
 
 ## License
