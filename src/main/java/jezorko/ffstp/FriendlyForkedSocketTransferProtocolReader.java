@@ -47,11 +47,11 @@ final class FriendlyForkedSocketTransferProtocolReader implements AutoCloseable 
     /**
      * Reads messages from the buffer and parses them.
      * If the message is malformed, a variety of exceptions may be thrown:<br/>
-     * * {@link InvalidHeaderException} if the header is not correct<br/>
-     * * {@link InvalidMessageLengthException} if message length is not a non-negative integer<br/>
-     * * {@link MissingDataException} if buffer was flushed with not enough data to parse the message<br/>
-     * * {@link MessageTooLongException} if buffer contained more data than promised<br/>
-     * * {@link IOException} if an IO error occurs (propagated from the {@link BufferedReader})<br/>
+     * <li> {@link InvalidHeaderException} if the header is not correct</li>
+     * <li> {@link InvalidMessageLengthException} if message length is not a non-negative integer</li>
+     * <li> {@link MissingDataException} if buffer was flushed with not enough data to parse the message</li>
+     * <li> {@link MessageTooLongException} if buffer contained more data than promised</li>
+     * <li> {@link IOException} if an IO error occurs (propagated from the {@link BufferedReader})</li>
      * This method blocks until data is available in the buffer.
      *
      * @return a new message from the buffer
