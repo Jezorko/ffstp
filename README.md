@@ -19,5 +19,28 @@ enough to explain it. It's simple, really.
 If you would like to use some library for serialization / deserialization,
 see example of how to do it [here](https://github.com/Jezorko/ffstp/blob/master/examples/GsonSerializer.java).
 
+## Maven
+Add repository to your pom.xml file:
+
+```xml
+<repositories>
+    <repository>
+        <id>jezorko-ffstp</id>
+        <name>jezorko-ffstp</name>
+        <url>https://raw.githubusercontent.com/jezorko/ffstp/repository</url>
+    </repository>
+</repositories>
+```
+
+And the dependency:
+
+```xml
+<dependency>
+    <groupId>com.github.jezorko</groupId>
+    <artifactId>ffstp</artifactId>
+    <version>1.0.0</version>
+    </dependency>
+```
+
 ## License
 See http://www.wtfpl.net/txt/copying/
