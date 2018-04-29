@@ -1,5 +1,7 @@
 package jezorko.ffstp;
 
+import jezorko.ffstp.exception.InvalidStatusException;
+
 import java.io.PrintWriter;
 
 import static jezorko.ffstp.Constants.MESSAGE_DELIMITER;
@@ -36,6 +38,10 @@ final class FriendlyForkedSocketTransferProtocolWriter implements AutoCloseable 
         final int dataBytesAmount = dataToSend.getBytes().length;
 
         final String statusToSend = message.getStatus() != null ? message.getStatus() : Status.UNKNOWN.name();
+
+        if (statusToSend.contains(";")) {
+            throw new InvalidStatusException(statusToSend);
+        }
 
         final String messageToSend = PROTOCOL_HEADER + MESSAGE_DELIMITER +
                                      statusToSend + MESSAGE_DELIMITER +

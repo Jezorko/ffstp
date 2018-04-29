@@ -1,5 +1,6 @@
 package jezorko.ffstp
 
+import jezorko.ffstp.exception.InvalidStatusException
 import spock.lang.Specification
 import spock.lang.Subject
 import spock.lang.Unroll
@@ -12,7 +13,7 @@ class FriendlyForkedSocketTransferProtocolWriterSpecTest extends Specification {
     def writer = new FriendlyForkedSocketTransferProtocolWriter(buffer)
 
     @Unroll
-    def "should send #givenMessage as '#expectedParsedMessage'"() {
+    "should send #givenMessage as '#expectedParsedMessage'"() {
         when:
           writer.writeMessage givenMessage
 
@@ -32,6 +33,14 @@ class FriendlyForkedSocketTransferProtocolWriterSpecTest extends Specification {
           Message.errorInvalidStatus("):")      | "FFS;ERROR_INVALID_STATUS;2;):;"
           Message.errorInvalidPayload("):")     | "FFS;ERROR_INVALID_PAYLOAD;2;):;"
           Message.die("x_X")                    | "FFS;DIE;3;x_X;"
+    }
+
+    def "should throw if given status contains semicolons"() {
+        when:
+          writer.writeMessage(new Message<String>("invalid;status", "test"))
+
+        then:
+          thrown InvalidStatusException
     }
 
     def "should rethrow any exceptions"() {
