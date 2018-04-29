@@ -13,12 +13,12 @@ import java.util.function.Function;
  * A wrapper class for {@link FriendlyForkedSocketTransferProtocolReader} and {@link FriendlyForkedSocketTransferProtocolWriter}.
  * Makes things more convenient by creating a more friendly interface for inter-socket communication.
  * Two types of communication are handled by two method pairs.<br/><br/>
- * Two-way communication:<br/>
- * <pre>    * {@link #sendAndAwaitResponse(Message, Class)}</pre>
- * <pre>    * {@link #waitForRequestAndReply(Class, Function)}</pre>
- * One-way communication:<br/>
- * <pre>    * {@link #writeMessage(Message)}</pre>
- * <pre>    * {@link #readMessage(Class)}</pre>
+ * <h3>Two-way communication methods:</h3>
+ * <li>{@link #sendAndAwaitResponse(Message, Class)}</li>
+ * <li>{@link #waitForRequestAndReply(Class, Function)}</li>
+ * <h3>One-way communication methods:</h3>
+ * <li>{@link #writeMessage(Message)}</li>
+ * <li>{@link #readMessage(Class)}</li>
  *
  * @param <T> defines the lower-bound type allowed as a message payload
  */
@@ -84,7 +84,8 @@ public class FriendlyTemplate<T> implements AutoCloseable {
         final Message<String> serializedRequest = reader.readMessageRethrowErrors();
         final Message<? extends Y> request = new Message<>(serializedRequest.getStatus(), serializer.deserialize(serializedRequest.getData(), requestClass));
         final Message<? extends T> response = requestHandler.apply(request);
-        writer.writeMessage(new Message<>(response.getStatus(), serializer.serialize(request.getData())));
+        final String serializedResponse = serializer.serialize(request.getData());
+        writer.writeMessage(new Message<>(response.getStatus(), serializedResponse));
     }
 
     /**
@@ -100,7 +101,8 @@ public class FriendlyTemplate<T> implements AutoCloseable {
      */
     public <Y extends T> Message<Y> readMessage(Class<Y> messageClass) {
         final Message<String> serializedMessage = reader.readMessageRethrowErrors();
-        return new Message<>(serializedMessage.getStatus(), serializer.deserialize(serializedMessage.getData(), messageClass));
+        final Y message = serializer.deserialize(serializedMessage.getData(), messageClass);
+        return new Message<>(serializedMessage.getStatus(), message);
     }
 
     /**
