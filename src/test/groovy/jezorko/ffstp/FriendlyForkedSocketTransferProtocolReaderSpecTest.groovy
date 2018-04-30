@@ -42,6 +42,8 @@ class FriendlyForkedSocketTransferProtocolReaderSpecTest extends Specification {
           "FFS;UNKNOWN;4;test;"             | new Message<>(UNKNOWN, "test")
           "FFS;OK;0;;"                      | Message.ok("")
           "FFS;OK;4;test;"                  | Message.ok("test")
+          "FFS;OK;4;ąćół;"                  | Message.ok("ąćół")
+          "FFS;ÓK;4;ąćół;"                  | new Message<>("ÓK", "ąćół")
           "FFS;ERROR;2;):;"                 | Message.error("):")
           "FFS;ERROR_INVALID_STATUS;2;):;"  | Message.errorInvalidStatus("):")
           "FFS;ERROR_INVALID_PAYLOAD;2;):;" | Message.errorInvalidPayload("):")
@@ -66,10 +68,10 @@ class FriendlyForkedSocketTransferProtocolReaderSpecTest extends Specification {
           "ABC;OK;4;test;"                                  | InvalidHeaderException        | { true }
           "FFS;OK;-1;test;"                                 | InvalidMessageLengthException | { true }
           "FFS;OK;This is not a non-negative integer;test;" | InvalidMessageLengthException | { true }
-          "oh"                                              | MissingDataException          | { it.receivedData == null }
+          "oh"                                              | InvalidHeaderException        | { true }
           "FFS;NOOOoo-"                                     | MissingDataException          | { it.receivedData == "NOOOoo-" }
           "FFS;OK;NOOOoo-"                                  | MissingDataException          | { it.receivedData == "NOOOoo-" }
-          "FFS;OK;6;test-"                                  | MissingDataException          | { it.receivedData == null }
+          "FFS;OK;6;test-"                                  | MissingDataException          | { it.receivedData == "" }
           "FFS;OK;1;test;"                                  | MessageTooLongException       | { true }
     }
 

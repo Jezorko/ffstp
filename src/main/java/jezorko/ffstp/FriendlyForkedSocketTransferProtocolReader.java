@@ -109,10 +109,11 @@ final class FriendlyForkedSocketTransferProtocolReader implements AutoCloseable 
     private String readDataToBuffer(int bufferSize) throws IOException {
         char[] buffer = new char[bufferSize];
         final int actualSize = inputReader.read(buffer, 0, bufferSize);
-        if (actualSize != bufferSize) {
+        final String result = new String(buffer);
+        if (actualSize == -1 || result.length() != bufferSize) {
             throw new MissingDataException(bufferSize, actualSize);
         }
-        return new String(buffer);
+        return result;
     }
 
     @Override
