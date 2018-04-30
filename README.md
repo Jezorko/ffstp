@@ -38,7 +38,7 @@ And the dependency:
 <dependency>
     <groupId>com.github.jezorko</groupId>
     <artifactId>ffstp</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
