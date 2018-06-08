@@ -35,7 +35,7 @@ final class FriendlyForkedSocketTransferProtocolWriter implements AutoCloseable 
      */
     void writeMessage(Message<String> message) {
         final String dataToSend = message.getData() != null ? message.getData() : "";
-        final int dataBytesAmount = dataToSend.getBytes().length;
+        final int dataBytesAmount = dataToSend.length();
 
         final String statusToSend = message.getStatus() != null ? message.getStatus() : Status.UNKNOWN.name();
 

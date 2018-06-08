@@ -14,7 +14,7 @@ public final class MessageTooLongException extends RuntimeException {
 
     public MessageTooLongException(Message<String> receivedMessage, String additionalData) {
         super("Too much data received, expected " + receivedMessage.getData().length() +
-              " but received " + additionalData.length() + " character(s)");
+              " but received " + additionalData.length() + " additional character(s)");
         this.receivedMessage = receivedMessage;
         this.additionalData = additionalData;
     }

@@ -1,5 +1,9 @@
 package jezorko.ffstp;
 
+import java.nio.charset.Charset;
+
+import static java.nio.charset.StandardCharsets.UTF_16;
+
 /**
  * Provides constant values found in the protocol structure.
  */
@@ -14,5 +18,10 @@ final class Constants {
      * Message fields separator.
      */
     final static char MESSAGE_DELIMITER = ';';
+
+    /**
+     * Charset in which data will be encoded.
+     */
+    final static Charset DEFAULT_CHARSET = UTF_16;
 
 }

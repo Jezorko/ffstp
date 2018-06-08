@@ -5,9 +5,12 @@ import jezorko.ffstp.exception.ProtocolWriterInitializationException;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.function.Function;
+
+import static jezorko.ffstp.Constants.DEFAULT_CHARSET;
 
 /**
  * A wrapper class for {@link FriendlyForkedSocketTransferProtocolReader} and {@link FriendlyForkedSocketTransferProtocolWriter}.
@@ -38,13 +41,13 @@ public class FriendlyTemplate<T> implements AutoCloseable {
      */
     public FriendlyTemplate(Socket socket, Serializer<T> serializer) {
         try {
-            PrintWriter outputWriter = new PrintWriter(socket.getOutputStream(), true);
+            PrintWriter outputWriter = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), DEFAULT_CHARSET), true);
             writer = new FriendlyForkedSocketTransferProtocolWriter(outputWriter);
         } catch (Exception e) {
             throw new ProtocolWriterInitializationException(e);
         }
         try {
-            BufferedReader inputReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            BufferedReader inputReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), DEFAULT_CHARSET), 32768);
             reader = new FriendlyForkedSocketTransferProtocolReader(inputReader);
         } catch (Exception e) {
             throw new ProtocolReaderInitializationException(e);
