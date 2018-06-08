@@ -5,9 +5,13 @@ import spock.lang.Specification
 import spock.lang.Subject
 import spock.lang.Unroll
 
+import static java.nio.charset.StandardCharsets.US_ASCII
+import static jezorko.ffstp.TestUtils.asciiBytesOf
+
 class FriendlyForkedSocketTransferProtocolWriterSpecTest extends Specification {
 
-    def buffer = Mock PrintWriter
+    def outputStream = new ByteArrayOutputStream(50)
+    def buffer = Spy(DataOutputStream, constructorArgs: [outputStream]) as DataOutputStream
 
     @Subject
     def writer = new FriendlyForkedSocketTransferProtocolWriter(buffer)
@@ -17,27 +21,25 @@ class FriendlyForkedSocketTransferProtocolWriterSpecTest extends Specification {
         when:
           writer.writeMessage givenMessage
 
-        then:
-          1 * buffer.print(expectedParsedMessage)
-          1 * buffer.flush()
-          0 * buffer._
+        then: "header is written"
+          outputStream.toString(US_ASCII.name()) == expectedParsedMessage
 
         where:
-          givenMessage                          | expectedParsedMessage
-          Message.EMPTY                         | "FFS;UNKNOWN;0;;"
-          Message.empty()                       | "FFS;UNKNOWN;0;;"
-          new Message<>(null as String, "test") | "FFS;UNKNOWN;4;test;"
-          Message.ok(null)                      | "FFS;OK;0;;"
-          Message.ok("test")                    | "FFS;OK;4;test;"
-          Message.error("):")                   | "FFS;ERROR;2;):;"
-          Message.errorInvalidStatus("):")      | "FFS;ERROR_INVALID_STATUS;2;):;"
-          Message.errorInvalidPayload("):")     | "FFS;ERROR_INVALID_PAYLOAD;2;):;"
-          Message.die("x_X")                    | "FFS;DIE;3;x_X;"
+          givenMessage                                        | expectedParsedMessage
+          Message.EMPTY                                       | "FFS;UNKNOWN;0;;"
+          Message.empty()                                     | "FFS;UNKNOWN;0;;"
+          new Message<>(null as String, asciiBytesOf("test")) | "FFS;UNKNOWN;4;test;"
+          Message.ok(null)                                    | "FFS;OK;0;;"
+          Message.ok(asciiBytesOf("test"))                    | "FFS;OK;4;test;"
+          Message.error(asciiBytesOf("):"))                   | "FFS;ERROR;2;):;"
+          Message.errorInvalidStatus(asciiBytesOf("):"))      | "FFS;ERROR_INVALID_STATUS;2;):;"
+          Message.errorInvalidPayload(asciiBytesOf("):"))     | "FFS;ERROR_INVALID_PAYLOAD;2;):;"
+          Message.die(asciiBytesOf("x_X"))                    | "FFS;DIE;3;x_X;"
     }
 
     def "should throw if given status contains semicolons"() {
         when:
-          writer.writeMessage(new Message<String>("invalid;status", "test"))
+          writer.writeMessage(new Message<byte[]>("invalid;status", asciiBytesOf("test")))
 
         then:
           thrown InvalidStatusException
@@ -48,7 +50,7 @@ class FriendlyForkedSocketTransferProtocolWriterSpecTest extends Specification {
           writer.writeMessage Message.empty()
 
         then:
-          1 * buffer.print(_ as String) >> { throw new Exception("oh no") }
+          1 * buffer._ >> { throw new Exception("oh no") }
           0 * buffer._
 
         and:

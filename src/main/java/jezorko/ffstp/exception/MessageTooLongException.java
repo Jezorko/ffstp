@@ -9,11 +9,11 @@ import jezorko.ffstp.Message;
  */
 public final class MessageTooLongException extends RuntimeException {
 
-    private final Message<String> receivedMessage;
+    private final Message<byte[]> receivedMessage;
     private final String additionalData;
 
-    public MessageTooLongException(Message<String> receivedMessage, String additionalData) {
-        super("Too much data received, expected " + receivedMessage.getData().length() +
+    public MessageTooLongException(Message<byte[]> receivedMessage, String additionalData) {
+        super("too much data received, expected " + receivedMessage.getData().length +
               " but received " + additionalData.length() + " additional character(s)");
         this.receivedMessage = receivedMessage;
         this.additionalData = additionalData;
@@ -22,7 +22,7 @@ public final class MessageTooLongException extends RuntimeException {
     /**
      * @return message with expected length that has been received
      */
-    public Message<String> getReceivedMessage() {
+    public Message<byte[]> getReceivedMessage() {
         return receivedMessage;
     }
 

@@ -6,10 +6,10 @@ package jezorko.ffstp.exception;
 public final class InvalidMessageLengthException extends RuntimeException {
 
     public InvalidMessageLengthException(int messageLength) {
-        super("Message length must be >= 0, received '" + messageLength + "'");
+        super("message length must be >= 0, received '" + messageLength + "'");
     }
 
     public InvalidMessageLengthException(String messageLength, NumberFormatException cause) {
-        super("Message length must be a number, got '" + messageLength + "'", cause);
+        super("message length must be a number, got '" + messageLength + "'", cause);
     }
 }
