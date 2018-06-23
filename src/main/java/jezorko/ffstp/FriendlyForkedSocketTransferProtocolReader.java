@@ -3,11 +3,12 @@ package jezorko.ffstp;
 import jezorko.ffstp.exception.*;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
-import java.util.Objects;
 
-import static jezorko.ffstp.Constants.MESSAGE_DELIMITER;
-import static jezorko.ffstp.Constants.PROTOCOL_HEADER;
+import static java.lang.Integer.parseInt;
+import static jezorko.ffstp.Constants.*;
 
 /**
  * Handles incoming messages.
@@ -16,15 +17,15 @@ import static jezorko.ffstp.Constants.PROTOCOL_HEADER;
  */
 final class FriendlyForkedSocketTransferProtocolReader implements AutoCloseable {
 
-    private final BufferedReader inputReader;
+    private final DataInputStream inputStream;
 
     /**
      * Takes ownership over the provided {@link BufferedReader}.
      *
-     * @param inputReader to use for reading incoming messages
+     * @param inputStream to use for reading incoming messages
      */
-    FriendlyForkedSocketTransferProtocolReader(BufferedReader inputReader) {
-        this.inputReader = inputReader;
+    FriendlyForkedSocketTransferProtocolReader(DataInputStream inputStream) {
+        this.inputStream = inputStream;
     }
 
     /**
@@ -34,7 +35,7 @@ final class FriendlyForkedSocketTransferProtocolReader implements AutoCloseable 
      *
      * @return a new message parsed from the reader
      */
-    Message<String> readMessageRethrowErrors() {
+    Message<byte[]> readMessageRethrowErrors() {
         try {
             return readMessage();
         } catch (RuntimeException uncheckedException) {
@@ -51,31 +52,27 @@ final class FriendlyForkedSocketTransferProtocolReader implements AutoCloseable 
      * <li> {@link InvalidMessageLengthException} if message length is not a non-negative integer</li>
      * <li> {@link MissingDataException} if buffer was flushed with not enough data to parse the message</li>
      * <li> {@link MessageTooLongException} if buffer contained more data than promised</li>
-     * <li> {@link IOException} if an IO error occurs (propagated from the {@link BufferedReader})</li>
      * This method blocks until data is available in the buffer.
      *
      * @return a new message from the buffer
      */
-    private Message<String> readMessage() throws IOException {
-        final String messageHeader = readDataToBuffer(4);
-        if (!Objects.equals(messageHeader, PROTOCOL_HEADER + ";")) {
-            throw new InvalidHeaderException(messageHeader);
-        }
+    private Message<byte[]> readMessage() {
+        readAndValidateHeader();
 
-        final String status = readUntilDelimiter();
-        final String dataBytesAmount = readUntilDelimiter();
+        final String status = readAsciiUntilDelimiter();
+        final String dataBytesAmount = readAsciiUntilDelimiter();
         int dataBytesAmountAsInt;
         try {
-            dataBytesAmountAsInt = Integer.parseInt(dataBytesAmount);
-        } catch (NumberFormatException e) {
-            throw new InvalidMessageLengthException(dataBytesAmount, e);
+            dataBytesAmountAsInt = parseInt(dataBytesAmount);
+        } catch (NumberFormatException exception) {
+            throw new InvalidMessageLengthException(dataBytesAmount, exception);
         }
         if (dataBytesAmountAsInt < 0) {
             throw new InvalidMessageLengthException(dataBytesAmountAsInt);
         }
-        final String messageBody = readDataToBuffer(dataBytesAmountAsInt);
-        final Message<String> message = new Message<>(status, messageBody);
-        final String shouldBeOnlyDelimiter = readUntilDelimiter();
+        final byte[] messageBody = readDataToBuffer(dataBytesAmountAsInt);
+        final Message<byte[]> message = new Message<>(status, messageBody, dataBytesAmountAsInt);
+        final String shouldBeOnlyDelimiter = readAsciiUntilDelimiter();
         if (shouldBeOnlyDelimiter.length() != 0) {
             throw new MessageTooLongException(message, shouldBeOnlyDelimiter);
         }
@@ -83,19 +80,65 @@ final class FriendlyForkedSocketTransferProtocolReader implements AutoCloseable 
     }
 
     /**
-     * Reads data from the buffer until a {@link Constants#MESSAGE_DELIMITER} is reached.
+     * Reads data until the {@link Constants#MESSAGE_DELIMITER} is encountered.
+     * Data, without the delimiter, is validated against {@link Constants#PROTOCOL_HEADER}.
+     *
+     * @throws InvalidHeaderException if there are too many bytes or bytes don't match the header
+     */
+    private void readAndValidateHeader() {
+        byte currentByte;
+        int receivedDataLength = 0;
+
+        do {
+            try {
+                currentByte = inputStream.readByte();
+
+                if (currentByte == MESSAGE_DELIMITER) {
+                    ++receivedDataLength;
+                    break;
+                }
+
+                if (receivedDataLength == PROTOCOL_HEADER.length ||
+                    currentByte != PROTOCOL_HEADER[receivedDataLength]) {
+                    throw new InvalidHeaderException(currentByte, receivedDataLength + 1);
+                }
+
+                ++receivedDataLength;
+            } catch (EOFException exception) {
+                throw new MissingDataException(receivedDataLength);
+            } catch (IOException exception) {
+                throw new RethrownException(exception);
+            }
+        } while (true);
+    }
+
+    /**
+     * Reads ASCII data from the buffer until a {@link Constants#MESSAGE_DELIMITER} is reached.
      *
      * @return data without the delimiter
      */
-    private String readUntilDelimiter() throws IOException {
-        int currentCharacter;
+    private String readAsciiUntilDelimiter() {
+        byte currentByte;
         StringBuilder resultBuilder = new StringBuilder();
-        while ((currentCharacter = inputReader.read()) != MESSAGE_DELIMITER) {
-            if (currentCharacter == -1) {
-                throw new MissingDataException(resultBuilder.toString());
+
+        do {
+            try {
+                currentByte = inputStream.readByte();
+
+                if (currentByte == MESSAGE_DELIMITER) {
+                    break;
+                }
+
+                resultBuilder.append((char) currentByte);
+            } catch (EOFException exception) {
+                byte[] receivedBytes = resultBuilder.toString()
+                                                    .getBytes(DEFAULT_CHARSET);
+                throw new MissingDataException(receivedBytes.length, receivedBytes);
+            } catch (IOException exception) {
+                throw new RethrownException(exception);
             }
-            resultBuilder.append((char) currentCharacter);
-        }
+        } while (true);
+
         return resultBuilder.toString();
     }
 
@@ -104,20 +147,32 @@ final class FriendlyForkedSocketTransferProtocolReader implements AutoCloseable 
      *
      * @param bufferSize expected size of the buffer
      *
-     * @return data wrapped in a {@link String}
+     * @return received data
      */
-    private String readDataToBuffer(int bufferSize) throws IOException {
-        char[] buffer = new char[bufferSize];
-        final int actualSize = inputReader.read(buffer, 0, bufferSize);
-        final String result = new String(buffer);
-        if (actualSize == -1 || result.length() != bufferSize) {
-            throw new MissingDataException(bufferSize, actualSize);
+    private byte[] readDataToBuffer(int bufferSize) {
+        byte[] buffer = new byte[bufferSize];
+        if (bufferSize == 0) {
+            return buffer;
         }
-        return result;
+
+        int receivedDataLength = 0;
+
+        do {
+            try {
+                buffer[receivedDataLength] = inputStream.readByte();
+                ++receivedDataLength;
+            } catch (EOFException exception) {
+                throw new MissingDataException(receivedDataLength);
+            } catch (IOException exception) {
+                throw new RethrownException(exception);
+            }
+        } while (receivedDataLength < bufferSize);
+
+        return buffer;
     }
 
     @Override
     public void close() throws Exception {
-        inputReader.close();
+        inputStream.close();
     }
 }

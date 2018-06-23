@@ -14,6 +14,7 @@ import static java.lang.Thread.sleep;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Logger.getLogger;
+import static jezorko.ffstp.Message.die;
 import static jezorko.ffstp.Status.DIE;
 
 public class MessagesExchangeExample {
@@ -79,7 +80,7 @@ public class MessagesExchangeExample {
                 log.info("Client received " + response);
             }
             log.info("Sending self-kill request");
-            final Message<String> response = ffstpClient.sendAndAwaitResponse(Message.die("DIE DIE DIE"));
+            final Message<String> response = ffstpClient.sendAndAwaitResponse(die());
             log.info("Client received " + response);
         } catch (Exception e) {
             log.log(SEVERE, "Client dies because of an exception", e);

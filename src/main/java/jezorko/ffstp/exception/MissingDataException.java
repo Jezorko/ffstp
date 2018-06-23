@@ -7,22 +7,36 @@ package jezorko.ffstp.exception;
  */
 public final class MissingDataException extends RuntimeException {
 
-    private final String receivedData;
+    private final byte[] receivedData;
+    private final int receivedDataLength;
 
-    public MissingDataException(String receivedData) {
-        super("Not enough data in the buffer, retrieved " + receivedData.length() + " characters");
+    public MissingDataException(int receivedDataLength) {
+        this(receivedDataLength, null);
+    }
+
+    public MissingDataException(int receivedDataLength, byte[] receivedData) {
+        super("not enough data in the buffer, retrieved " + receivedDataLength + " characters");
         this.receivedData = receivedData;
+        this.receivedDataLength = receivedDataLength;
     }
 
     public MissingDataException(int bufferSize, int actualSize) {
-        super("Not enough data in the buffer, expected " + bufferSize + " but received " + actualSize + " character(s)");
+        super("not enough data in the buffer, expected " + bufferSize + " but received " + actualSize + " character(s)");
         receivedData = null;
+        receivedDataLength = actualSize;
     }
 
     /**
      * @return data that has been received or null if data could not be recovered
      */
-    public String getReceivedData() {
+    public byte[] getReceivedData() {
         return receivedData;
+    }
+
+    /**
+     * @return the amount of bytes that has been received before this exception was thrown
+     */
+    public int getReceivedDataLength() {
+        return receivedDataLength;
     }
 }

@@ -6,7 +6,7 @@ package jezorko.ffstp.exception;
 public class InvalidStatusException extends RuntimeException {
 
     public InvalidStatusException(String status) {
-        super("status must not contain semicolons, given status '" + status + "' is not valid");
+        super("status must not contain semicolons or non-ascii characters, given status '" + status + "' is not valid");
     }
 
 }

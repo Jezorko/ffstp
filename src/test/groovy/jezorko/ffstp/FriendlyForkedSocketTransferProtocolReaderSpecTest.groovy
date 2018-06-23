@@ -7,9 +7,10 @@ import jezorko.ffstp.exception.MissingDataException
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import static java.io.File.createTempFile
 import static java.lang.System.err
 import static jezorko.ffstp.Status.UNKNOWN
+import static jezorko.ffstp.TestUtils.asciiBytesOf
+import static jezorko.ffstp.TestUtils.mockAsciiStream
 
 class FriendlyForkedSocketTransferProtocolReaderSpecTest extends Specification {
 
@@ -41,35 +42,41 @@ class FriendlyForkedSocketTransferProtocolReaderSpecTest extends Specification {
     @Unroll
     "should parse '#message' into #expectedResult"() {
         given:
-          def buffer = mockBuffer message
+          def buffer = mockAsciiStream message
           def reader = new FriendlyForkedSocketTransferProtocolReader(buffer)
+          def expectedData = expectedResult.data as byte[]
 
         when:
-          def actualResult = reader.readMessageRethrowErrors()
+          Message<byte[]> actualResult = reader.readMessageRethrowErrors()
 
         then:
-          expectedResult == actualResult
+          expectedResult.status == actualResult.status
+          expectedData.length == actualResult.data.length
+          for (int i = 0; i < expectedData.length; ++i) {
+              assert expectedData[i] == actualResult.data[i]
+          }
+
 
         where:
           message                           | expectedResult
-          "FFS;;0;;"                        | new Message<>("", "")
-          "FFS;UNKNOWN;0;;"                 | new Message<>(UNKNOWN, "")
-          "FFS;UNKNOWN;4;test;"             | new Message<>(UNKNOWN, "test")
-          "FFS;OK;0;;"                      | Message.ok("")
-          "FFS;OK;4;test;"                  | Message.ok("test")
-          "FFS;OK;4;ąćół;"                  | Message.ok("ąćół")
-          "FFS;ÓK;4;ąćół;"                  | new Message<>("ÓK", "ąćół")
-          "FFS;ERROR;2;):;"                 | Message.error("):")
-          "FFS;ERROR_INVALID_STATUS;2;):;"  | Message.errorInvalidStatus("):")
-          "FFS;ERROR_INVALID_PAYLOAD;2;):;" | Message.errorInvalidPayload("):")
-          "FFS;DIE;3;x_X;"                  | Message.die("x_X")
-          "FFS;OK;1368;${longMessage};"     | Message.ok(longMessage)
+          "FFS;;0;;"                        | new Message<>("", asciiBytesOf(""))
+          "FFS;UNKNOWN;0;;"                 | new Message<>(UNKNOWN, asciiBytesOf(""))
+          "FFS;UNKNOWN;4;test;"             | new Message<>(UNKNOWN, asciiBytesOf("test"))
+          "FFS;OK;0;;"                      | Message.ok(asciiBytesOf(""))
+          "FFS;OK;4;test;"                  | Message.ok(asciiBytesOf("test"))
+          "FFS;OK;4;ąćół;"                  | Message.ok(asciiBytesOf("ąćół"))
+          "FFS;ÓK;4;ąćół;"                  | new Message<>("?K", asciiBytesOf("ąćół"))
+          "FFS;ERROR;2;):;"                 | Message.error(asciiBytesOf("):"))
+          "FFS;ERROR_INVALID_STATUS;2;):;"  | Message.errorInvalidStatus(asciiBytesOf("):"))
+          "FFS;ERROR_INVALID_PAYLOAD;2;):;" | Message.errorInvalidPayload(asciiBytesOf("):"))
+          "FFS;DIE;3;x_X;"                  | Message.die(asciiBytesOf("x_X"))
+          "FFS;OK;1368;${longMessage};"     | Message.ok(asciiBytesOf(longMessage))
     }
 
     @Unroll
     "should throw #expectedException.simpleName after trying to parse #message"() {
         given:
-          def buffer = mockBuffer message
+          def buffer = mockAsciiStream message
           def reader = new FriendlyForkedSocketTransferProtocolReader(buffer)
 
         when:
@@ -85,17 +92,10 @@ class FriendlyForkedSocketTransferProtocolReaderSpecTest extends Specification {
           "FFS;OK;-1;test;"                                 | InvalidMessageLengthException | { true }
           "FFS;OK;This is not a non-negative integer;test;" | InvalidMessageLengthException | { true }
           "oh"                                              | InvalidHeaderException        | { true }
-          "FFS;NOOOoo-"                                     | MissingDataException          | { it.receivedData == "NOOOoo-" }
-          "FFS;OK;NOOOoo-"                                  | MissingDataException          | { it.receivedData == "NOOOoo-" }
-          "FFS;OK;6;test-"                                  | MissingDataException          | { it.receivedData == "" }
+          "FFS;NOOOoo-"                                     | MissingDataException          | { it.receivedData == asciiBytesOf("NOOOoo-") }
+          "FFS;OK;NOOOoo-"                                  | MissingDataException          | { it.receivedData == asciiBytesOf("NOOOoo-") }
+          "FFS;OK;6;test-"                                  | MissingDataException          | { it.receivedData == null }
           "FFS;OK;1;test;"                                  | MessageTooLongException       | { true }
-    }
-
-    def mockBuffer(String data) {
-        def temporaryFile = createTempFile(this.class.getName(), "-test-buffer")
-        temporaryFile.write(data)
-        temporaryFiles.add(temporaryFile)
-        return new BufferedReader(new FileReader(temporaryFile))
     }
 
 }

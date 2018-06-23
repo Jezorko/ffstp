@@ -1,11 +1,14 @@
 package jezorko.ffstp;
 
 import jezorko.ffstp.exception.InvalidStatusException;
+import jezorko.ffstp.exception.RethrownException;
 
+import java.io.DataOutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.CharsetEncoder;
 
-import static jezorko.ffstp.Constants.MESSAGE_DELIMITER;
-import static jezorko.ffstp.Constants.PROTOCOL_HEADER;
+import static jezorko.ffstp.Constants.*;
+import static jezorko.ffstp.Status.UNKNOWN;
 
 /**
  * Handles outgoing messages.
@@ -14,15 +17,18 @@ import static jezorko.ffstp.Constants.PROTOCOL_HEADER;
  */
 final class FriendlyForkedSocketTransferProtocolWriter implements AutoCloseable {
 
-    private final PrintWriter outputWriter;
+    private final static byte[] EMPTY_DATA = new byte[0];
+    private final static CharsetEncoder ASCII_ENCODER = DEFAULT_CHARSET.newEncoder();
+
+    private final DataOutputStream outputStream;
 
     /**
      * Takes ownership over the provided {@link PrintWriter}.
      *
-     * @param outputWriter to use for writing outgoing messages
+     * @param outputStream to use for writing outgoing messages
      */
-    FriendlyForkedSocketTransferProtocolWriter(PrintWriter outputWriter) {
-        this.outputWriter = outputWriter;
+    FriendlyForkedSocketTransferProtocolWriter(DataOutputStream outputStream) {
+        this.outputStream = outputStream;
     }
 
     /**
@@ -33,27 +39,37 @@ final class FriendlyForkedSocketTransferProtocolWriter implements AutoCloseable 
      *
      * @throws Exception of some sort, sometimes, probably
      */
-    void writeMessage(Message<String> message) {
-        final String dataToSend = message.getData() != null ? message.getData() : "";
-        final int dataBytesAmount = dataToSend.length();
+    void writeMessage(Message<byte[]> message) {
+        final byte[] dataToSend = message.getData() != null ? message.getData() : EMPTY_DATA;
+        final String dataBytesAmountAsString = String.valueOf(dataToSend.length);
 
-        final String statusToSend = message.getStatus() != null ? message.getStatus() : Status.UNKNOWN.name();
+        final String statusToSend = message.getStatus() != null ? message.getStatus() : UNKNOWN.name();
 
-        if (statusToSend.contains(";")) {
+        if (statusToSend.contains(";") || !ASCII_ENCODER.canEncode(statusToSend)) {
             throw new InvalidStatusException(statusToSend);
         }
 
-        final String messageToSend = PROTOCOL_HEADER + MESSAGE_DELIMITER +
-                                     statusToSend + MESSAGE_DELIMITER +
-                                     dataBytesAmount + MESSAGE_DELIMITER +
-                                     dataToSend + MESSAGE_DELIMITER;
+        try {
+            outputStream.write(PROTOCOL_HEADER);
+            outputStream.writeByte(MESSAGE_DELIMITER);
 
-        outputWriter.print(messageToSend);
-        outputWriter.flush();
+            outputStream.write(statusToSend.getBytes(DEFAULT_CHARSET));
+            outputStream.writeByte(MESSAGE_DELIMITER);
+
+            outputStream.write(dataBytesAmountAsString.getBytes(DEFAULT_CHARSET));
+            outputStream.writeByte(MESSAGE_DELIMITER);
+
+            outputStream.write(dataToSend);
+            outputStream.writeByte(MESSAGE_DELIMITER);
+
+            outputStream.flush();
+        } catch (Exception e) {
+            throw new RethrownException(e);
+        }
     }
 
     @Override
-    public void close() {
-        outputWriter.close();
+    public void close() throws Exception {
+        outputStream.close();
     }
 }

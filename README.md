@@ -1,5 +1,6 @@
 # Friendly Forked Socket Transfer Protocol
 
+[![License: WTFPL](https://img.shields.io/badge/License-WTFPL-red.svg)](http://www.wtfpl.net/txt/copying/)
 [![Build Status](https://travis-ci.org/Jezorko/ffstp.svg?branch=master)](https://travis-ci.org/Jezorko/ffstp)
 
 ## What is this?
@@ -38,9 +39,6 @@ And the dependency:
 <dependency>
     <groupId>com.github.jezorko</groupId>
     <artifactId>ffstp</artifactId>
-    <version>1.1.0</version>
+    <version>2.0.0</version>
 </dependency>
 ```
-
-## License
-See http://www.wtfpl.net/txt/copying/

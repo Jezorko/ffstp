@@ -5,6 +5,6 @@ package jezorko.ffstp.exception;
  */
 public final class RethrownException extends RuntimeException {
     public RethrownException(Throwable throwable) {
-        super("A checked exception was rethrown, see cause for more details", throwable);
+        super("a checked exception was rethrown, see cause for more details", throwable);
     }
 }
